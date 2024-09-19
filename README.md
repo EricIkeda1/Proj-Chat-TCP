@@ -1,2 +1,2 @@
-# Proj4-Chat-TCP
-Proj4-Chat-TCP
+# Proj2-Chat-TCP
+Ao selecionar ip colocar 127.0.0.1
