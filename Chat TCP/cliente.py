@@ -12,7 +12,7 @@ print("6. DES")
 escolha = input("Digite o número da cifra desejada: ")
 
 # Solicitação da chave de criptografia
-chave = input("Digite a chave previamente combinada com seu parceiro: ")
+chave = input("Digite a chave:")
 
 # Solicitação do texto plano apenas se RC4 for selecionada
 texto_plano = ""
@@ -49,7 +49,6 @@ def cifra_monoalfabetica(mensagem, chave, criptografar=True):
     for caractere in mensagem.upper():  # Converte a mensagem para maiúsculas e itera sobre cada caractere
         resultado += mapa_chave.get(caractere, caractere)  # Substitui o caractere ou mantém o original
     return resultado  # Retorna a mensagem criptografada ou descriptografada
-
 
 # Função que implementa a Cifra de Playfair
 class Playfair:
@@ -137,7 +136,7 @@ def cifra_de_vigenere(mensagem, chave, criptografar=True):
     return resultado
 
 texto_plano = "ATACARBASENORTE"
-chave = "FOGO"
+chave = chave.upper()
 texto_criptografado = cifra_de_vigenere(texto_plano, chave)
 print("Texto cifrado:", texto_criptografado)
     
