@@ -52,60 +52,72 @@ def cifra_monoalfabetica(mensagem, chave, criptografar=True):
 
 
 # Função que implementa a Cifra de Playfair
-def cifra_de_playfair(mensagem, chave, criptografar=True):
-    def formatar_mensagem(mensagem):
-        mensagem = mensagem.replace(' ', '').upper()
-        formatada = ''
+class Playfair:
+    def __init__(self, key):
+        self.enc = {}
+        self.dec = {}
+        self.create_key_matrix(key)
+
+    def uniq(self, seq):
+        seen = []
+        for x in seq:
+            if x not in seen:
+                seen.append(x)
+        return seen
+
+    def partition(self, seq, n):
+        return [seq[i:i + n] for i in range(0, len(seq), n)]
+
+    def canonicalize(self, s):
+        return s.upper().replace('J', 'I').replace(' ', '')
+
+    def create_key_matrix(self, key):
+        # Concatena a chave com o alfabeto completo, remove duplicatas
+        key = self.canonicalize(key + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+        matrix = self.partition(self.uniq(key), 5)
+
+        # Exibe a matriz para depuração
+        print("Matriz de chaves:")
+        for row in matrix:
+            print(row)
+
+        # Mapeia as letras para seus pares cifrados (linhas e colunas)
+        for row in range(5):
+            for col in range(5):
+                for i in range(5):
+                    if col != i:
+                        self.enc[matrix[row][col] + matrix[row][i]] = matrix[row][(i + 1) % 5] + matrix[row][(col + 1) % 5]
+                        self.dec[matrix[row][(i + 1) % 5] + matrix[row][(col + 1) % 5]] = matrix[row][col] + matrix[row][i]
+
+        # Adiciona substituições de pares diagonais
+        for i1 in range(5):
+            for j1 in range(5):
+                for i2 in range(5):
+                    for j2 in range(5):
+                        if i1 != i2 and j1 != j2:
+                            self.enc[matrix[i1][j1] + matrix[i2][j2]] = matrix[i1][j2] + matrix[i2][j1]
+                            self.dec[matrix[i1][j2] + matrix[i2][j1]] = matrix[i1][j1] + matrix[i2][j2]
+
+    def encode(self, text):
+        text = self.canonicalize(text)
+        lst = []
         i = 0
-        while i < len(mensagem):
-            if i == len(mensagem) - 1:
-                formatada += mensagem[i] + 'X'
-                i += 1
-            elif mensagem[i] == mensagem[i + 1]:
-                formatada += mensagem[i] + 'X'
+        while i < len(text) - 1:
+            if text[i] == text[i + 1]:
+                lst.append(text[i] + 'X')
                 i += 1
             else:
-                formatada += mensagem[i] + mensagem[i + 1]
+                lst.append(text[i:i + 2])
                 i += 2
-        return formatada
+        if i == len(text) - 1:
+            lst.append(text[i] + 'X')  # Adiciona X ao final se o número de caracteres for ímpar
+        
+        # Retorna o texto cifrado
+        return ' '.join(self.enc.get(pair, pair) for pair in lst)
 
-    def criar_matriz(chave):
-        alfabeto = 'ABCDEFGHIKLMNOPQRSTUVWXYZ'
-        matriz = []
-        for caractere in chave.upper():
-            if caractere not in matriz and caractere != 'J':
-                matriz.append(caractere)
-        for caractere in alfabeto:
-            if caractere not in matriz:
-                matriz.append(caractere)
-        return [matriz[i:i + 5] for i in range(0, 25, 5)]
-
-    def encontrar_posicao(matriz, caractere):
-        for i, linha in enumerate(matriz):
-            for j, valor in enumerate(linha):
-                if valor == caractere:
-                    return i, j
-
-    mensagem = formatar_mensagem(mensagem)
-    matriz = criar_matriz(chave)
-    resultado = ''
-    
-    for i in range(0, len(mensagem), 2):
-        linha1, coluna1 = encontrar_posicao(matriz, mensagem[i])
-        linha2, coluna2 = encontrar_posicao(matriz, mensagem[i + 1])
-
-        if linha1 == linha2:
-            coluna1 = (coluna1 + 1) % 5 if criptografar else (coluna1 - 1) % 5
-            coluna2 = (coluna2 + 1) % 5 if criptografar else (coluna2 - 1) % 5
-        elif coluna1 == coluna2:
-            linha1 = (linha1 + 1) % 5 if criptografar else (linha1 - 1) % 5
-            linha2 = (linha2 + 1) % 5 if criptografar else (linha2 - 1) % 5
-        else:
-            coluna1, coluna2 = coluna2, coluna1
-
-        resultado += matriz[linha1][coluna1] + matriz[linha2][coluna2]
-    
-    return resultado
+    def decode(self, text):
+        pairs = self.partition(text.replace(' ', ''), 2)
+        return ''.join(self.dec.get(pair, pair) for pair in pairs)
 
 # Função que implementa a Cifra de Vigenère
 def cifra_de_vigenere(mensagem, chave, criptografar=True):
@@ -124,6 +136,11 @@ def cifra_de_vigenere(mensagem, chave, criptografar=True):
             resultado += caractere
     return resultado
 
+texto_plano = "ATACARBASENORTE"
+chave = "FOGO"
+texto_criptografado = cifra_de_vigenere(texto_plano, chave)
+print("Texto cifrado:", texto_criptografado)
+    
 # Função RC4
 def rc4(key, text):
     S = list(range(256))
@@ -191,7 +208,8 @@ def criptografar_mensagem(mensagem, escolha, chave):
     elif escolha == '2':
         return cifra_monoalfabetica(mensagem, chave)
     elif escolha == '3':
-        return cifra_de_playfair(mensagem, chave)
+        playfair = Playfair(chave)
+        return playfair.encode(mensagem)
     elif escolha == '4':
         return cifra_de_vigenere(mensagem, chave)
     elif escolha == '6':  # DES
@@ -207,6 +225,9 @@ def receber_mensagens():
     while True:
         try:
             mensagem = cliente.recv(1024).decode('ascii')
+            if escolha == '3':
+                texto_plano = input("Digite o texto plano (para Cifra de Playfair): ")
+                print(f"Texto Plano: {texto_plano}")
             if escolha == '5':  # RC4
                 print(f"Texto Plano: {texto_plano}")
                 texto_plano_ascii = [ord(c) for c in texto_plano]
