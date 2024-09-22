@@ -138,7 +138,6 @@ def cifra_de_vigenere(mensagem, chave, criptografar=True):
 texto_plano = "ATACARBASENORTE"
 chave = chave.upper()
 texto_criptografado = cifra_de_vigenere(texto_plano, chave)
-print("Texto cifrado:", texto_criptografado)
     
 # Função RC4
 def rc4(key, text):
@@ -225,7 +224,6 @@ def receber_mensagens():
         try:
             mensagem = cliente.recv(1024).decode('ascii')
             if escolha == '3':
-                texto_plano = input("Digite o texto plano (para Cifra de Playfair): ")
                 print(f"Texto Plano: {texto_plano}")
             if escolha == '5':  # RC4
                 print(f"Texto Plano: {texto_plano}")
