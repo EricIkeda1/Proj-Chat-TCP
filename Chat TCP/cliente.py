@@ -255,7 +255,7 @@ k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
 # Exibir o resultado
 print(f"Subchave k2: {k2}")
 
-# Função que aplica a cifra escolhida na mensagem
+# Função que aplica a cifra escolhida na mensage
 def criptografar_mensagem(mensagem, escolha, chave):
     chave = chave.upper()  # Converte a chave para letras maiúsculas
     chave_bytes = chave.encode()
@@ -293,6 +293,8 @@ def receber_mensagens():
                 print(f"Chave: {chave}")
                 chave_ascii = [ord(c) for c in chave]
                 print(f"Chave ASCII: {chave_ascii}")
+            elif escolha == '6':
+                print(mensagem)
             else:
                 print(mensagem)
         except:
