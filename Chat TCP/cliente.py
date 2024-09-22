@@ -1,5 +1,7 @@
 import socket
 import threading
+import getpass
+import colorama
 
 # Escolha da cifra de criptografia pelo usuário
 print("Escolha a cifra de criptografia: ")
@@ -51,73 +53,123 @@ def cifra_monoalfabetica(mensagem, chave, criptografar=True):
     return resultado  # Retorna a mensagem criptografada ou descriptografada
 
 # Função que implementa a Cifra de Playfair
-class Playfair:
-    def __init__(self, key):
-        self.enc = {}
-        self.dec = {}
-        self.create_key_matrix(key)
+key = "fogo"
 
-    def uniq(self, seq):
-        seen = []
-        for x in seq:
-            if x not in seen:
-                seen.append(x)
-        return seen
+def criar_matriz_playfair(chave):
+    alfabeto = 'ABCDEFGHIKLMNOPQRSTUVWXYZ'  # I e J combinados
+    matriz = []
+    used = set()
 
-    def partition(self, seq, n):
-        return [seq[i:i + n] for i in range(0, len(seq), n)]
+    # Adiciona a chave à matriz, removendo duplicatas
+    for char in chave.upper():
+        if char not in used and char != ' ':
+            matriz.append(char)
+            used.add(char)
 
-    def canonicalize(self, s):
-        return s.upper().replace('J', 'I').replace(' ', '')
+    # Adiciona as letras restantes do alfabeto à matriz
+    for char in alfabeto:
+        if char not in used:
+            matriz.append(char)
 
-    def create_key_matrix(self, key):
-        # Concatena a chave com o alfabeto completo, remove duplicatas
-        key = self.canonicalize(key + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-        matrix = self.partition(self.uniq(key), 5)
+    # Forma a matriz 5x5
+    return [matriz[i:i + 5] for i in range(0, 25, 5)]
 
-        # Exibe a matriz para depuração
-        print("Matriz de chaves:")
-        for row in matrix:
-            print(row)
+def encontrar_indices(matriz, letra):
+    for i in range(len(matriz)):
+        for j in range(len(matriz[i])):
+            if matriz[i][j] == letra.upper():
+                return (i, j)
+    return (-1, -1)  # Letra não encontrada
 
-        # Mapeia as letras para seus pares cifrados (linhas e colunas)
-        for row in range(5):
-            for col in range(5):
-                for i in range(5):
-                    if col != i:
-                        self.enc[matrix[row][col] + matrix[row][i]] = matrix[row][(i + 1) % 5] + matrix[row][(col + 1) % 5]
-                        self.dec[matrix[row][(i + 1) % 5] + matrix[row][(col + 1) % 5]] = matrix[row][col] + matrix[row][i]
+def criptografar_playfair(texto, chave):
+    matriz = criar_matriz_playfair(chave)
+    texto_cifrado = ''
+    digrama = ''
+    texto_sem_espacos = texto.replace(' ', '')  # Remove espaços temporariamente
 
-        # Adiciona substituições de pares diagonais
-        for i1 in range(5):
-            for j1 in range(5):
-                for i2 in range(5):
-                    for j2 in range(5):
-                        if i1 != i2 and j1 != j2:
-                            self.enc[matrix[i1][j1] + matrix[i2][j2]] = matrix[i1][j2] + matrix[i2][j1]
-                            self.dec[matrix[i1][j2] + matrix[i2][j1]] = matrix[i1][j1] + matrix[i2][j2]
+    # Adiciona um caractere de preenchimento se o comprimento do texto for ímpar
+    if len(texto_sem_espacos) % 2 != 0:
+        texto_sem_espacos += 'X'  # 'X' é um caractere de preenchimento comum
 
-    def encode(self, text):
-        text = self.canonicalize(text)
-        lst = []
-        i = 0
-        while i < len(text) - 1:
-            if text[i] == text[i + 1]:
-                lst.append(text[i] + 'X')
-                i += 1
-            else:
-                lst.append(text[i:i + 2])
-                i += 2
-        if i == len(text) - 1:
-            lst.append(text[i] + 'X')  # Adiciona X ao final se o número de caracteres for ímpar
-        
-        # Retorna o texto cifrado
-        return ' '.join(self.enc.get(pair, pair) for pair in lst)
+    for i in range(len(texto_sem_espacos)):
+        char = texto_sem_espacos[i]
+        char_upper = char.upper()
+        if char_upper == 'J':
+            digrama += 'I'
+        else:
+            digrama += char_upper
 
-    def decode(self, text):
-        pairs = self.partition(text.replace(' ', ''), 2)
-        return ''.join(self.dec.get(pair, pair) for pair in pairs)
+        if len(digrama) == 2:
+            i1, j1 = encontrar_indices(matriz, digrama[0])
+            i2, j2 = encontrar_indices(matriz, digrama[1])
 
+            if i1 == i2:  # Mesma linha
+                texto_cifrado += matriz[i1][(j1 + 1) % 5] + matriz[i2][(j2 + 1) % 5]
+            elif j1 == j2:  # Mesma coluna
+                texto_cifrado += matriz[(i1 + 1) % 5][j1] + matriz[(i2 + 1) % 5][j2]
+            else:  # Diferentes linha e coluna
+                texto_cifrado += matriz[i1][j2] + matriz[i2][j1]
+            digrama = ''
+
+    # Adiciona espaços de volta no texto cifrado
+    texto_com_espacos = ''
+    indice_texto_cifrado = 0
+
+    for i in range(len(texto)):
+        if texto[i] == ' ':
+            texto_com_espacos += ' '
+        else:
+            texto_com_espacos += texto_cifrado[indice_texto_cifrado]
+            indice_texto_cifrado += 1
+
+    return texto_com_espacos
+
+def descriptografar_playfair(texto_cifrado, chave):
+    matriz = criar_matriz_playfair(chave)
+    texto_claro = ''
+    texto_sem_espacos = texto_cifrado.replace(' ', '')  # Remove espaços temporariamente
+
+    # Adiciona um caractere de preenchimento se o comprimento do texto cifrado for ímpar
+    if len(texto_sem_espacos) % 2 != 0:
+        texto_sem_espacos += 'X'  # 'X' é um caractere de preenchimento comum
+
+    for i in range(0, len(texto_sem_espacos), 2):
+        char1 = texto_sem_espacos[i].upper()
+        char2 = texto_sem_espacos[i + 1].upper()
+
+        # Verifica se os caracteres são válidos
+        if not char1.isalpha() or not char2.isalpha():
+            print(colorama.Fore.RED + "Caractere inválido no texto cifrado.")
+            return
+
+        i1, j1 = encontrar_indices(matriz, char1)
+        i2, j2 = encontrar_indices(matriz, char2)
+
+        if i1 == i2:
+            texto_claro += matriz[i1][(j1 - 1) % 5] + matriz[i2][(j2 - 1) % 5]
+        elif j1 == j2:
+            texto_claro += matriz[(i1 - 1) % 5][j1] + matriz[(i2 - 1) % 5][j2]
+        else:
+            texto_claro += matriz[i1][j2] + matriz[i2][j1]
+
+    # Remove o caractere de preenchimento se estiver no final do texto claro
+    if texto_claro.endswith('X'):
+        texto_claro = texto_claro[:-1]
+
+    # Adiciona espaços de volta no texto claro
+    texto_com_espacos = ''
+    indice_texto_claro = 0
+
+    for i in range(len(texto_cifrado)):
+        if texto_cifrado[i] == ' ':
+            texto_com_espacos += ' '
+        else:
+            if indice_texto_claro < len(texto_claro):
+                texto_com_espacos += texto_claro[indice_texto_claro]
+                indice_texto_claro += 1
+
+    return texto_com_espacos
+    
 # Função que implementa a Cifra de Vigenère
 def cifra_de_vigenere(mensagem, chave, criptografar=True):
     resultado = ''
@@ -140,83 +192,90 @@ chave = chave.upper()
 texto_criptografado = cifra_de_vigenere(texto_plano, chave)
     
 # Função RC4
-def rc4(key, text):
+def rc4(message, key):
+    S = initialize_state(key)
+    key_stream = generate_key_stream(S, len(message))
+    return bytes([byte ^ key_stream[i] for i, byte in enumerate(message)])
+
+def initialize_state(key):
+    key = key.upper()  # Converte a chave para letras maiúsculas
+    key = key.encode()  # Converte a chave para bytes
     S = list(range(256))
     j = 0
-    key_length = len(key)
-    
     for i in range(256):
-        j = (j + S[i] + key[i % key_length]) % 256
-        S[i], S[j] = S[j], S[i]
-    
+        j = (j + S[i] + key[i % len(key)]) % 256  # Usar diretamente o byte da chave
+        S[i], S[j] = S[j], S[i]  # Swap
+    return S
+
+def generate_key_stream(S, message_length):
+    key_stream = []
     i = j = 0
-    result = []
-    for char in text:
+    for _ in range(message_length):
         i = (i + 1) % 256
         j = (j + S[i]) % 256
-        S[i], S[j] = S[j], S[i]
-        K = S[(S[i] + S[j]) % 256]
-        result.append(chr(ord(char) ^ K))
-    
-    return ''.join(result)
+        S[i], S[j] = S[j], S[i]  # Swap S[i] and S[j]
+        key_stream.append(S[(S[i] + S[j]) % 256])
+    return key_stream
 
 # Função que implementa o DES
-def executar_des():
-    # Seu código do DES já implementado
-    c1 = [1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1]
-    d1 = [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0]
-    ls_array = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1]
-    pc2 = [14, 17, 11, 24, 1, 5, 3, 28, 15, 6, 21, 10, 23, 19, 12, 4, 26, 8, 16, 7, 27, 20, 13, 2, 41, 52, 31, 37, 47, 55, 30, 40, 51, 45, 33, 48, 44, 49, 39, 56, 34, 53, 46, 42, 50, 36, 29, 32]
+def rotate_left(bits, n):
+    return bits[n:] + bits[:n]
 
-    def shift_left(arr, n):
-        return arr[n:] + arr[:n]
+def permute(key, pc_2_table):
+    return ''.join([key[i-1] for i in pc_2_table])
 
-    c1s = c1[:]
-    d1s = d1[:]
+def generate_subkey(c1, d1, pc_2_table, shift_amount):
+    # Realizar a rotação à esquerda
+    c2 = rotate_left(c1, shift_amount)
+    d2 = rotate_left(d1, shift_amount)
+    
+    # Concatenar c2 e d2
+    combined = c2 + d2
+    
+    # Aplicar permutação PC-2
+    k2 = permute(combined, pc_2_table)
+    
+    return k2
 
-    for i in range(16):
-        iteration_count = ls_array[i]
-        c1s = shift_left(c1s, iteration_count)
-        d1s = shift_left(d1s, iteration_count)
+# Dados de entrada
+c1 = "11100001100110010101010111111"
+d1 = "10101010110011001111100011110"
 
-    def permute_pc2(c, d, pc2):
-        combined = c + d
-        permuted_key = [combined[index - 1] for index in pc2]
-        return permuted_key
+# Tabela PC-2 fornecida na imagem
+pc_2_table = [14, 17, 11, 24, 1, 5, 3, 28, 15, 6, 21, 10, 23, 19, 12, 4,
+              26, 8, 16, 7, 27, 20, 13, 2, 41, 52, 31, 37, 47, 55, 30, 40,
+              51, 45, 33, 48, 44, 49, 39, 56, 34, 53, 46, 42, 50, 36, 29, 32]
 
-    key = permute_pc2(c1s, d1s, pc2)
+# Número de rotações à esquerda para k2 (2ª iteração)
+shift_amount = 1
 
-    print("Chave calculada:", key)
-    print("Comprimento da chave:", len(key))
-    return key
+# Gerar a subchave k2
+k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
+
+# Exibir o resultado
+print(f"Subchave k2: {k2}")
 
 # Função que aplica a cifra escolhida na mensagem
 def criptografar_mensagem(mensagem, escolha, chave):
-    if escolha == '5':  # RC4
-        chave_bytes = chave  # Para RC4, a chave deve ser uma string de bytes
-        return rc4(chave_bytes, mensagem)
-    else:
-        # Outras cifras podem ser implementadas aqui
-        return mensagem
-
-# Função que aplica a cifra escolhida na mensagem
-def criptografar_mensagem(mensagem, escolha, chave):
+    chave = chave.upper()  # Converte a chave para letras maiúsculas
+    chave_bytes = chave.encode()
+    
     if escolha == '1':
         return cifra_de_cesar(mensagem, int(chave))
     elif escolha == '2':
         return cifra_monoalfabetica(mensagem, chave)
     elif escolha == '3':
-        playfair = Playfair(chave)
-        return playfair.encode(mensagem)
+        return criptografar_playfair(mensagem, chave)
     elif escolha == '4':
         return cifra_de_vigenere(mensagem, chave)
-    elif escolha == '6':  # DES
-        print("Executando DES...")
-        key = executar_des()
-        print(f"Texto Criptografado com DES: {mensagem}") 
-        return mensagem  
+    elif escolha == '5':  # RC4
+        mensagem_ascii = [ord(char) for char in mensagem]
+        chave_bytes = [ord(char) for char in chave]
+        return rc4(mensagem_ascii, chave_bytes)
+    elif escolha == '6':
+        return rotate_left()  # Ajuste conforme necessário
     else:
-        return mensagem
+        raise ValueError("Cifra inválida.")
 
 # Função que recebe mensagens do servidor
 def receber_mensagens():
