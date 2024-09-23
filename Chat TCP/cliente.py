@@ -18,8 +18,10 @@ chave = input("Digite a chave:")
 
 # Solicitação do texto plano apenas se RC4 for selecionada
 texto_plano = ""
-if escolha == '5' or escolha == '6':
+if escolha == '5':
     texto_plano = input("Digite o texto plano: ")
+elif escolha == '6':
+    pass
 
 # Função que implementa a Cifra de César
 def cifra_de_cesar(mensagem, chave, criptografar=True):
@@ -252,7 +254,6 @@ shift_amount = 1
 # Gerar a subchave k2
 k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
 
-# Exibir o resultado
 print(f"Subchave k2: {k2}")
 
 # Função que aplica a cifra escolhida na mensage
@@ -273,7 +274,7 @@ def criptografar_mensagem(mensagem, escolha, chave):
         chave_bytes = [ord(char) for char in chave]
         return rc4(mensagem_ascii, chave_bytes)
     elif escolha == '6':
-        return rotate_left()  # Ajuste conforme necessário
+        return generate_subkey()  # Ajuste conforme necessário
     else:
         raise ValueError("Cifra inválida.")
 
