@@ -1,4 +1,5 @@
 TESTE 1:
+
 	Entrada:
 
 		Texto Plano = "Cybersecurity melhor disciplina do curso.";
@@ -14,6 +15,7 @@ TESTE 1:
 		Texto Cript. = [214 32 110 109 116 251 159 133 226 76 193 253 168 73 65 197 82 72 93 68 250 55 28 202 59 77 186 27 97 24 48 54 106 38 82 214 222 20 20 13 251]
 
 TESTE 2:
+
 	Entrada:
 
 		Texto Plano = "Cybersecurity melhor disciplina do curso.";
