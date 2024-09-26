@@ -31,9 +31,9 @@ TESTE 2:
 		Texto Cript. = [84 179 117 15 203 82 18 217 141 197 213 126 47 255 83 83 99 47 120 247 192 203 33 247 220 192 213 82 241 248 166 142 129 105 50 227 178 74 181 144 94];
 
 
-T3: 
+TESTE 3: 
 
-Entrada:
+	Entrada:
 
 		Texto Plano = "Cybersecurity melhor disciplina do curso.";
 
