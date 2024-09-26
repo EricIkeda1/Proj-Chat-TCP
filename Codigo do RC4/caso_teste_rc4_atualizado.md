@@ -1,5 +1,6 @@
 TESTE 1:
 	Entrada:
+
 		Texto Plano = "Cybersecurity melhor disciplina do curso.";
 
 		Texto Plano ASCII = [67 121 98 101 114 115 101 99 117 114 105 116 121 32 109 101 108 104 111 114 32 100 105 115 99 105 112 108 105 110 97 32 100 111 32 99 117 114 115 111 46];
@@ -14,6 +15,7 @@ TESTE 1:
 
 TESTE 2:
 	Entrada:
+
 		Texto Plano = "Cybersecurity melhor disciplina do curso.";
 
 		Texto Plano ASCII = [67 121 98 101 114 115 101 99 117 114 105 116 121 32 109 101 108 104 111 114 32 100 105 115 99 105 112 108 105 110 97 32 100 111 32 99 117 114 115 111 46];
@@ -30,6 +32,7 @@ TESTE 2:
 T3: 
 
 Entrada:
+
 		Texto Plano = "Cybersecurity melhor disciplina do curso.";
 
 		Texto Plano ASCII = [67 121 98 101 114 115 101 99 117 114 105 116 121 32 109 101 108 104 111 114 32 100 105 115 99 105 112 108 105 110 97 32 100 111 32 99 117 114 115 111 46];
