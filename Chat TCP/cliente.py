@@ -53,6 +53,7 @@ def cifra_monoalfabetica(mensagem, chave, criptografar=True):
     return resultado  # Retorna a mensagem criptografada ou descriptografada
 
 # Função que implementa a Cifra de Playfair
+# Função para criar a matriz de Playfair
 def criar_matriz_playfair(chave):
     alfabeto = 'ABCDEFGHIKLMNOPQRSTUVWXYZ'  # I e J combinados
     matriz = []
@@ -218,7 +219,6 @@ shift_amount = 1
 # Gerar a subchave k2
 k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
 
-print(f"Subchave k2: {k2}")
 
 # Função que aplica a cifra escolhida na mensage
 def criptografar_mensagem(mensagem, escolha, chave):
@@ -236,7 +236,9 @@ def criptografar_mensagem(mensagem, escolha, chave):
     elif escolha == '5':  # RC4
         return rc4(chave, mensagem)
     elif escolha == '6':
-        return generate_subkey()  # Ajuste conforme necessário
+        k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
+        print(f"Resultado do DES (Subchave k2): {k2}")
+        return None 
     else:
         raise ValueError("Cifra inválida.")
 
@@ -257,7 +259,11 @@ def receber_mensagens():
                 chave_ascii = [ord(c) for c in chave]
                 print(f"Chave ASCII: {chave_ascii}")
             elif escolha == '6':
-                print(mensagem)
+                # Gera a subchave k2 para DES e exibe o resultado apenas para a escolha DES
+                k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
+                print(f"Resultado do DES (Subchave k2): {k2}")
+            
+            # Para todas as outras cifras, exibe a mensagem recebida
             else:
                 print(mensagem)
         except:
