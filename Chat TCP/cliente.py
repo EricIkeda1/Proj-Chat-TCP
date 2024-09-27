@@ -53,8 +53,87 @@ def cifra_monoalfabetica(mensagem, chave, criptografar=True):
     return resultado  # Retorna a mensagem criptografada ou descriptografada
 
 # Função que implementa a Cifra de Playfair
+def criar_matriz_playfair(chave):
+    alfabeto = 'ABCDEFGHIKLMNOPQRSTUVWXYZ'  # I e J combinados
+    matriz = []
+    used = {}
 
+    # Adiciona a chave à matriz, removendo duplicatas
+    for char in chave.upper():
+        if char not in used and char != ' ':
+            matriz.append(char)
+            used[char] = True
 
+    # Adiciona as letras restantes do alfabeto à matriz
+    for char in alfabeto:
+        if char not in used:
+            matriz.append(char)
+
+    # Forma a matriz 5x5
+    return [matriz[i:i + 5] for i in range(0, 25, 5)]
+
+# Função para encontrar a posição de uma letra na matriz
+def encontrar_indices(matriz, letra):
+    for i in range(len(matriz)):
+        for j in range(len(matriz[i])):
+            if matriz[i][j] == letra.upper():
+                return (i, j)
+    return (-1, -1)  # Letra não encontrada
+
+# Função de criptografia com a cifra de Playfair
+def criptografar_playfair(mensagem, chave):
+    matriz = criar_matriz_playfair(chave)
+    mensagem_cifrada = ''
+    digrama = ''
+    mensagem_sem_espacos = mensagem.replace(' ', '')  # Remove espaços temporariamente
+
+    if len(mensagem_sem_espacos) % 2 != 0:
+        mensagem_sem_espacos += 'X'  # Adiciona um X se o comprimento for ímpar
+
+    for i in range(len(mensagem_sem_espacos)):
+        char = mensagem_sem_espacos[i]
+        char_upper = char.upper()
+        if char_upper == 'J':
+            digrama += 'I'
+        else:
+            digrama += char_upper
+
+        if len(digrama) == 2:
+            i1, j1 = encontrar_indices(matriz, digrama[0])
+            i2, j2 = encontrar_indices(matriz, digrama[1])
+
+            if i1 == i2:  # Mesma linha
+                mensagem_cifrada += matriz[i1][(j1 + 1) % 5] + matriz[i2][(j2 + 1) % 5]
+            elif j1 == j2:  # Mesma coluna
+                mensagem_cifrada += matriz[(i1 + 1) % 5][j1] + matriz[(i2 + 1) % 5][j2]
+            else:  # Retângulo
+                mensagem_cifrada += matriz[i1][j2] + matriz[i2][j1]
+            digrama = ''
+
+    return mensagem_cifrada
+
+# Função de descriptografia com a cifra de Playfair
+def descriptografar_playfair(mensagem_cifrada, chave):
+    matriz = criar_matriz_playfair(chave)
+    mensagem_clara = ''
+    digrama = ''
+    mensagem_sem_espacos = mensagem_cifrada.replace(' ', '')  # Remove espaços temporariamente
+
+    for i in range(0, len(mensagem_sem_espacos), 2):
+        char1 = mensagem_sem_espacos[i].upper()
+        char2 = mensagem_sem_espacos[i + 1].upper()
+
+        i1, j1 = encontrar_indices(matriz, char1)
+        i2, j2 = encontrar_indices(matriz, char2)
+
+        if i1 == i2:  # Mesma linha
+            mensagem_clara += matriz[i1][(j1 - 1 + 5) % 5] + matriz[i2][(j2 - 1 + 5) % 5]
+        elif j1 == j2:  # Mesma coluna
+            mensagem_clara += matriz[(i1 - 1 + 5) % 5][j1] + matriz[(i2 - 1 + 5) % 5][j2]
+        else:  # Retângulo
+            mensagem_clara += matriz[i1][j2] + matriz[i2][j1]
+
+    return mensagem_clara
 
 # Função que implementa a Cifra de Vigenère
 def cifra_de_vigenere(mensagem, chave, criptografar=True):
@@ -151,7 +230,7 @@ def criptografar_mensagem(mensagem, escolha, chave):
     elif escolha == '2':
         return cifra_monoalfabetica(mensagem, chave)
     elif escolha == '3':
-        return (mensagem, chave)
+        return criptografar_playfair(mensagem, chave)
     elif escolha == '4':
         return cifra_de_vigenere(mensagem, chave)
     elif escolha == '5':  # RC4
