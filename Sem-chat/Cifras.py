@@ -221,7 +221,6 @@ def generate_subkey(c1, d1, pc_2_table, shift_amount):
     
     # Aplicar permutação PC-2
     k2 = permute(combined, pc_2_table)
-    print(f"Subchave k2 gerada: {k2}")
     return k2
 
 # Dados de entrada
@@ -285,24 +284,16 @@ def processar_operacao(operacao, escolha, texto, chave):
             except Exception as e:
                 resultado = f"Erro na descriptografia: {e}"
     elif escolha == '6':  # Cifra DES
-        try:
-            if len(chave) != 8:
-                raise ValueError("A chave deve ter exatamente 8 caracteres.")
-            
-            cipher = DES.new(chave.encode('utf-8'), DES.MODE_ECB)
-            if operacao == '1':  # Criptografar
-                # Preencher o texto até um múltiplo de 8 bytes
-                while len(texto) % 8 != 0:
-                    texto += ' '
-                resultado = base64.b64encode(cipher.encrypt(texto.encode('utf-8'))).decode('utf-8')
-            else:  # Descriptografar
-                decrypted_text = cipher.decrypt(base64.b64decode(texto))
-                resultado = decrypted_text.decode('utf-8').strip()  # Remove os espaços preenchidos
-        except Exception as e:
-            return f"Ocorreu um erro na Cifra DES: {e}"
+        if operacao == '1':
+            # Gerar a subchave k2
+            k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
+            print(f"Subchave k2 gerada: {k2}")
+            # Aqui você pode adicionar a lógica de criptografia DES usando a subchave k2
+            resultado = "Criptografia DES não implementada."  # Substitua isso pela sua implementação
+        else:
+            resultado = "Descriptografia DES não implementada."  # Substitua isso pela sua implementação
 
     return resultado
-
 # Execução do programa
 def main():
     while True:
