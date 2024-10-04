@@ -1,4 +1,3 @@
-# Importar a cifra DES
 from Crypto.Cipher import DES
 import base64
 
@@ -243,10 +242,12 @@ def processar_operacao(operacao, escolha, texto, chave):
             chave_num = int(chave)
         except ValueError:
             return "Chave inválida para a Cifra de César. Deve ser um número inteiro."
+        
         if operacao == '1':
             resultado = cifra_cesar(texto, chave_num, 'criptografar')
         else:
             resultado = cifra_cesar(texto, chave_num, 'descriptografar')
+
     elif escolha == '2':  # Cifra de Substituição Monoalfabética
         mapeamento = criar_mapeamento(chave)
         if operacao == '1':
@@ -254,36 +255,59 @@ def processar_operacao(operacao, escolha, texto, chave):
         else:
             mapeamento_invertido = inverter_mapeamento(mapeamento)
             resultado = substituicao_monoalfabetica(texto, mapeamento_invertido)
+
     elif escolha == '3':  # Cifra de Playfair
         if operacao == '1':
             resultado = cifra_playfair(texto, chave, 'criptografar')
         else:
             resultado = cifra_playfair(texto, chave, 'descriptografar')
+
     elif escolha == '4':  # Cifra de Vigenère
         if operacao == '1':
             resultado = cifra_vigenere(texto, chave, 'criptografar')
         else:
             resultado = cifra_vigenere(texto, chave, 'descriptografar')
+
     elif escolha == '5':  # Cifra RC4
         if operacao == '1':  # Criptografar
-            resultado = rc4(chave, texto)  # Criptografar
+            resultado = rc4(chave, texto)
         else:  # Descriptografar
-            # Certifique-se de que o texto esteja no formato correto
             try:
                 # Converte a string da lista para uma lista de inteiros
-                encrypted_text = eval(texto)  # avalia a string para uma lista
+                encrypted_text = eval(texto)  # Avalia a string para uma lista
                 # Descriptografar, utilizando os valores ASCII convertidos
                 original_text = ''.join(chr(c) for c in rc4(chave, ''.join(chr(c) for c in encrypted_text)))
-                resultado = original_text  # Retorna o texto descriptografado
+                resultado = original_text
             except Exception as e:
                 resultado = f"Erro na descriptografia: {e}"
- # Corrigido para chamar rc4 com 2 argumentos
-    elif escolha == '6':
-                # Gera a subchave k2 para DES e exibe o resultado apenas para a escolha DES
-                k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
-                print(f"Resultado do DES (Subchave k2): {k2}")
+    elif escolha == '6':  # Cifra DES
+        try:
+            if len(chave) != 8:
+                raise ValueError("A chave deve ter exatamente 8 caracteres.")
+            
+            cipher = DES.new(chave.encode('utf-8'), DES.MODE_ECB)
+            if operacao == '1':  # Criptografar
+                # Preencher o texto até um múltiplo de 8 bytes
+                while len(texto) % 8 != 0:
+                    texto += ' '
+                resultado = base64.b64encode(cipher.encrypt(texto.encode('utf-8'))).decode('utf-8')
+            else:  # Descriptografar
+                decrypted_text = cipher.decrypt(base64.b64decode(texto))
+                resultado = decrypted_text.decode('utf-8').strip()  # Remove os espaços preenchidos
+        except Exception as e:
+            return f"Ocorreu um erro na Cifra DES: {e}"
 
-# Executa o programa
-operacao, escolha, texto, chave = menu()
-resultado = processar_operacao(operacao, escolha, texto, chave)
-print(f"\nResultado:\n{resultado}")
+    return resultado
+
+# Execução do programa
+def main():
+    while True:
+        operacao, escolha, texto, chave = menu()
+        resultado = processar_operacao(operacao, escolha, texto, chave)
+        print(f"Resultado: {resultado}")
+        continuar = input("Deseja continuar? (s/n): ")
+        if continuar.lower() != 's':
+            break
+
+if __name__ == "__main__":
+    main()
