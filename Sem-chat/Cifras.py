@@ -17,11 +17,15 @@ def menu():
     print("6. Cifra DES")
     escolha = input("Digite o número da cifra desejada: ")
 
-    texto = input("\nDigite o texto: ")
-    chave = input("Digite a chave: ")
+    # Se a escolha for DES e a operação for de descriptografia, não solicita entrada de texto e chave
+    if escolha == '6' and operacao == '2':
+        texto = input("\nDigite o texto criptografado: ")
+        chave = input("Digite a chave (8 caracteres): ")
+    else:
+        texto = input("\nDigite o texto: ")
+        chave = input("Digite a chave: ")
 
     return operacao, escolha, texto, chave
-
 
 # Cifra de César
 def cifra_cesar(texto, chave, modo='criptografar'):
@@ -217,7 +221,7 @@ def generate_subkey(c1, d1, pc_2_table, shift_amount):
     
     # Aplicar permutação PC-2
     k2 = permute(combined, pc_2_table)
-    
+    print(f"Subchave k2 gerada: {k2}")
     return k2
 
 # Dados de entrada
