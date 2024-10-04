@@ -202,26 +202,40 @@ def rc4(key, text):
     return ''.join(result)
 
 # Cifra de DES
-def cifra_des(texto, chave, modo='criptografar'):
-    chave = chave.encode('utf-8')
-    if len(chave) < 8:
-        chave = chave.ljust(8, b' ')
-    else:
-        chave = chave[:8]
+def rotate_left(bits, n):
+    return bits[n:] + bits[:n]
 
-    cipher = DES.new(chave, DES.MODE_ECB)
-    padding = 8 - (len(texto) % 8)
-    texto_padded = texto + (chr(padding) * padding)
-    if modo == 'criptografar':
-        criptografado = cipher.encrypt(texto_padded.encode('utf-8'))
-        return base64.b64encode(criptografado).decode('utf-8')
-    else:
-        decodificado = base64.b64decode(texto)
-        descriptografado = cipher.decrypt(decodificado).decode('utf-8')
-        pad = ord(descriptografado[-1])
-        return descriptografado[:-pad]
+def permute(key, pc_2_table):
+    return ''.join([key[i-1] for i in pc_2_table])
 
-# Processamento da Escolha do Usuário
+def generate_subkey(c1, d1, pc_2_table, shift_amount):
+    # Realizar a rotação à esquerda
+    c2 = rotate_left(c1, shift_amount)
+    d2 = rotate_left(d1, shift_amount)
+    
+    # Concatenar c2 e d2
+    combined = c2 + d2
+    
+    # Aplicar permutação PC-2
+    k2 = permute(combined, pc_2_table)
+    
+    return k2
+
+# Dados de entrada
+c1 = "11100001100110010101010111111"
+d1 = "10101010110011001111100011110"
+
+# Tabela PC-2 fornecida na imagem
+pc_2_table = [14, 17, 11, 24, 1, 5, 3, 28, 15, 6, 21, 10, 23, 19, 12, 4,
+              26, 8, 16, 7, 27, 20, 13, 2, 41, 52, 31, 37, 47, 55, 30, 40,
+              51, 45, 33, 48, 44, 49, 39, 56, 34, 53, 46, 42, 50, 36, 29, 32]
+
+# Número de rotações à esquerda para k2 (2ª iteração)
+shift_amount = 1
+
+# Gerar a subchave k2
+k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
+
 # Processamento da Escolha do Usuário
 def processar_operacao(operacao, escolha, texto, chave):
     if escolha == '1':  # Cifra de César
@@ -264,14 +278,10 @@ def processar_operacao(operacao, escolha, texto, chave):
             except Exception as e:
                 resultado = f"Erro na descriptografia: {e}"
  # Corrigido para chamar rc4 com 2 argumentos
-    elif escolha == '6':  # Cifra DES
-        if operacao == '1':
-            resultado = cifra_des(texto, chave, 'criptografar')
-        else:
-            resultado = cifra_des(texto, chave, 'descriptografar')
-    else:
-        resultado = "Escolha inválida."
-    return resultado
+    elif escolha == '6':
+                # Gera a subchave k2 para DES e exibe o resultado apenas para a escolha DES
+                k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
+                print(f"Resultado do DES (Subchave k2): {k2}")
 
 # Executa o programa
 operacao, escolha, texto, chave = menu()
