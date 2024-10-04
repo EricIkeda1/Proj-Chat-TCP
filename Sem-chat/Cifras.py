@@ -251,7 +251,19 @@ def processar_operacao(operacao, escolha, texto, chave):
         else:
             resultado = cifra_vigenere(texto, chave, 'descriptografar')
     elif escolha == '5':  # Cifra RC4
-        resultado = rc4(chave, texto)  # Corrigido para chamar rc4 com 2 argumentos
+        if operacao == '1':  # Criptografar
+            resultado = rc4(chave, texto)  # Criptografar
+        else:  # Descriptografar
+            # Certifique-se de que o texto esteja no formato correto
+            try:
+                # Converte a string da lista para uma lista de inteiros
+                encrypted_text = eval(texto)  # avalia a string para uma lista
+                # Descriptografar, utilizando os valores ASCII convertidos
+                original_text = ''.join(chr(c) for c in rc4(chave, ''.join(chr(c) for c in encrypted_text)))
+                resultado = original_text  # Retorna o texto descriptografado
+            except Exception as e:
+                resultado = f"Erro na descriptografia: {e}"
+ # Corrigido para chamar rc4 com 2 argumentos
     elif escolha == '6':  # Cifra DES
         if operacao == '1':
             resultado = cifra_des(texto, chave, 'criptografar')
