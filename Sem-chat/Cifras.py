@@ -1,6 +1,7 @@
 from Crypto.Cipher import DES
 import base64
 from colorama import init, Fore, Style
+from numpy import left_shift
 
 def menu():
     print("===== Programa de Criptografia =====")
@@ -232,38 +233,164 @@ def rc4(key, text):
     return ''.join(result)
 
 # Cifra de DES
-def rotate_left(bits, n):
-    return bits[n:] + bits[:n]
+IP = [58, 50, 42, 34, 26, 18, 10, 2,
+      60, 52, 44, 36, 28, 20, 12, 4,
+      62, 54, 46, 38, 30, 22, 14, 6,
+      64, 56, 48, 40, 32, 24, 16, 8,
+      57, 49, 41, 33, 25, 17, 9, 1,
+      59, 51, 43, 35, 27, 19, 11, 3,
+      61, 53, 45, 37, 29, 21, 13, 5,
+      63, 55, 47, 39, 31, 23, 15, 7]
 
-def permute(key, pc_2_table):
-    return ''.join([key[i-1] for i in pc_2_table])
+IP_INV = [40, 8, 48, 16, 56, 24, 64, 32,
+          39, 7, 47, 15, 55, 23, 63, 31,
+          38, 6, 46, 14, 54, 22, 62, 30,
+          37, 5, 45, 13, 53, 21, 61, 29,
+          36, 4, 44, 12, 52, 20, 60, 28,
+          35, 3, 43, 11, 51, 19, 59, 27,
+          34, 2, 42, 10, 50, 18, 58, 26,
+          33, 1, 41, 9, 49, 17, 57, 25]
 
-def generate_subkey(c1, d1, pc_2_table, shift_amount):
-    # Realizar a rotação à esquerda
-    c2 = rotate_left(c1, shift_amount)
-    d2 = rotate_left(d1, shift_amount)
+E = [32, 1, 2, 3, 4, 5,
+     4, 5, 6, 7, 8, 9,
+     8, 9, 10, 11, 12, 13,
+     12, 13, 14, 15, 16, 17,
+     16, 17, 18, 19, 20, 21,
+     20, 21, 22, 23, 24, 25,
+     24, 25, 26, 27, 28, 29,
+     28, 29, 30, 31, 32, 1]
+
+P = [16, 7, 20, 21,
+     29, 12, 28, 17,
+     1, 15, 23, 26,
+     5, 18, 31, 10,
+     2, 8, 24, 14,
+     32, 27, 3, 9,
+     19, 13, 30, 6,
+     22, 11, 4, 25]
+
+SBOX = [
+    # S-box 1
+    [[14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7],
+     [0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8],
+     [4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0],
+     [15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13]],
+
+    # S-box 2
+    [[15, 1, 8, 14, 6, 11, 3, 4, 9, 7, 2, 13, 12, 0, 5, 10],
+     [3, 13, 4, 7, 15, 2, 8, 14, 12, 0, 1, 10, 6, 9, 11, 5],
+     [0, 14, 7, 11, 10, 4, 13, 1, 5, 8, 12, 6, 9, 3, 2, 15],
+     [13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0, 5, 14, 9]],
+
+    # S-box 3
+    [[10, 0, 9, 14, 6, 3, 15, 5, 1, 13, 2, 8, 4, 7, 12, 11],
+     [7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 0, 15, 3, 8],
+     [5, 1, 2, 14, 9, 10, 0, 6, 12, 11, 4, 7, 13, 15, 8, 3],
+     [2, 14, 12, 4, 1, 7, 10, 11, 6, 8, 0, 13, 3, 5, 9, 15]],
+
+    # S-box 4
+    [[3, 15, 0, 6, 10, 1, 13, 7, 4, 9, 2, 8, 5, 11, 14, 12],
+     [0, 14, 7, 11, 10, 4, 13, 1, 5, 8, 12, 6, 9, 3, 2, 15],
+     [2, 1, 14, 7, 4, 10, 8, 13, 15, 9, 11, 12, 0, 6, 3, 5],
+     [8, 13, 3, 15, 4, 7, 5, 10, 1, 2, 14, 12, 0, 9, 11, 6]],
+
+    # S-box 5
+    [[2, 12, 4, 1, 7, 10, 11, 6, 9, 0, 5, 14, 15, 13, 3, 8],
+     [4, 2, 1, 11, 10, 13, 7, 8, 15, 9, 12, 5, 6, 3, 0, 14],
+     [11, 8, 12, 7, 1, 4, 2, 13, 0, 6, 9, 10, 14, 3, 5, 15],
+     [12, 1, 10, 15, 9, 2, 6, 8, 0, 13, 4, 5, 3, 11, 14, 7]],
+
+    # S-box 6
+    [[12, 1, 10, 15, 9, 2, 6, 8, 0, 13, 4, 5, 3, 11, 14, 7],
+     [4, 11, 2, 14, 15, 0, 8, 13, 3, 6, 12, 9, 5, 10, 7, 1],
+     [13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0, 5, 14, 9],
+     [7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 0, 15, 3, 8]],
+
+    # S-box 7
+    [[2, 12, 4, 1, 7, 10, 11, 6, 9, 0, 5, 14, 15, 13, 3, 8],
+     [4, 2, 1, 11, 10, 13, 7, 8, 15, 9, 12, 5, 6, 3, 0, 14],
+     [11, 8, 12, 7, 1, 4, 2, 13, 0, 6, 9, 10, 14, 3, 5, 15],
+     [12, 1, 10, 15, 9, 2, 6, 8, 0, 13, 4, 5, 3, 11, 14, 7]],
+
+    # S-box 8
+    [[12, 1, 10, 15, 9, 2, 6, 8, 0, 13, 4, 5, 3, 11, 14, 7],
+     [4, 11, 2, 14, 15, 0, 8, 13, 3, 6, 12, 9, 5, 10, 7, 1],
+     [13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0, 5, 14, 9],
+     [7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 0, 15, 3, 8]],
+]
+
+# Tabelas para geração de chaves (PC1, PC2, shifts)
+PC1 = [57, 49, 41, 33, 25, 17, 9,
+       1, 58, 50, 42, 34, 26, 18,
+       10, 2, 59, 51, 43, 35, 27,
+       19, 11, 3, 60, 52, 44, 36,
+       63, 55, 47, 39, 31, 23, 15,
+       7, 62, 54, 46, 38, 30, 22,
+       14, 6, 61, 53, 45, 37, 29,
+       21, 13, 5, 28, 20, 12, 4]
+
+PC2 = [14, 17, 11, 24, 1, 5,
+       3, 28, 15, 6, 21, 10,
+       23, 19, 12, 4, 26, 8,
+       16, 7, 27, 20, 13, 2,
+       41, 52, 31, 37, 47, 55,
+       30, 40, 51, 45, 33, 48,
+       44, 49, 39, 56, 34, 53,
+       46, 42, 50, 36, 29, 32]
+
+shifts = [1, 1, 2, 2, 2, 2, 2, 2,
+          1, 2, 2, 2, 2, 2, 2, 1]
+
+def text_to_hex(texto):
+    """Converte texto em uma representação hexadecimal."""
+    return ' '.join(format(ord(c), '02X') for c in texto)
+
+def hex_to_bin(chave):
+    """Converte chave hexadecimal em uma representação binária."""
+    return ''.join(format(int(c, 16), '04b') for c in chave.split())
+
+def xor(a, b):
+    """Realiza a operação XOR entre duas strings binárias."""
+    if len(a) != len(b):
+        raise ValueError("As strings devem ter o mesmo comprimento para a operação XOR.")
+    return ''.join('1' if a[i] != b[i] else '0' for i in range(len(a)))
+
+def permute(block, table):
+    """Aplica uma permutação em um bloco baseado em uma tabela de permutação."""
+    return ''.join(block[i - 1] for i in table)
+
+def f(R, K):
+    """Função de Feistel, aplica expansão e XOR com a chave, depois permuta."""
+    # Implementar a lógica da função F conforme a cifra DES
+    return R
+
+def des(texto, chave):
+    """Implementa a criptografia DES."""
+    # Lógica do DES: deve incluir a geração de chaves e os rounds de criptografia
+    # Para simplificação, o código aqui é uma representação
+    resultado = ''
+    for i in range(0, len(texto), 64):
+        block = texto[i:i + 64]
+        # Simule o processo DES
+        L, R = block[:32], block[32:]
+        # Adicione a lógica de rounds e aplique a chave corretamente
+        resultado += L + R  # Placeholder: Retorna o bloco sem alteração
+    return resultado  # Retorne o resultado da criptografia
+
+# Gerar chaves para DES
+def generate_keys(key):
+    key = permute(key, PC1)
     
-    # Concatenar c2 e d2
-    combined = c2 + d2
+    # Gerar 16 subchaves
+    subkeys = []
+    L, R = key[:28], key[28:]
     
-    # Aplicar permutação PC-2
-    k2 = permute(combined, pc_2_table)
-    return k2
-
-# Dados de entrada
-c1 = "11100001100110010101010111111"
-d1 = "10101010110011001111100011110"
-
-# Tabela PC-2 fornecida na imagem
-pc_2_table = [14, 17, 11, 24, 1, 5, 3, 28, 15, 6, 21, 10, 23, 19, 12, 4,
-              26, 8, 16, 7, 27, 20, 13, 2, 41, 52, 31, 37, 47, 55, 30, 40,
-              51, 45, 33, 48, 44, 49, 39, 56, 34, 53, 46, 42, 50, 36, 29, 32]
-
-# Número de rotações à esquerda para k2 (2ª iteração)
-shift_amount = 1
-
-# Gerar a subchave k2
-k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
+    for i in range(16):
+        L = left_shift(L, shifts[i])
+        R = left_shift(R, shifts[i])
+        subkeys.append(permute(L + R, PC2))
+    
+    return subkeys
 
 # Processamento da Escolha do Usuário
 def processar_operacao(operacao, escolha, texto, chave):
@@ -312,16 +439,44 @@ def processar_operacao(operacao, escolha, texto, chave):
                 resultado = f"Erro na descriptografia: {e}"
 
     elif escolha == '6':  # Cifra DES
-        if operacao == '1':
-            # Gerar a subchave k2
-            k2 = generate_subkey(c1, d1, pc_2_table, shift_amount)
-            print(f"Subchave k2 gerada: {k2}")
-            # Aqui você pode adicionar a lógica de criptografia DES usando a subchave k2
-            resultado = "Criptografia DES não implementada."  # Substitua isso pela sua implementação
-        else:
-            resultado = "Descriptografia DES não implementada."  # Substitua isso pela sua implementação
+        if operacao == '1':  # Cifra DES
+            hex_texto = text_to_hex(texto)  # Converte o texto para hexadecimal
+            print(f"Texto Plano: {texto}")
+            print(f"Chave: {chave} (HEXADECIMAL)")
+            print(f"Converter para texto plano e chave para hexadecimal.")
+            print(f"Texto Plano = {hex_texto}")
 
-    return resultado
+        # Converter texto em binário
+            bin_texto = ''.join(format(int(c, 16), '04b') for c in hex_texto.split())
+        
+        # Separar em blocos de 64 bits
+            print("Separar em blocos de 64 bits.")
+            bin_texto = bin_texto.replace(" ", "")  # Remove os espaços
+            while len(bin_texto) % 64 != 0:  # Adiciona padding se necessário
+                bin_texto += '0'
+        
+        # Divide o texto binário em blocos de 64 bits
+            blocos = [bin_texto[i:i + 64] for i in range(0, len(bin_texto), 64)]
+            print(f"Texto Plano = {' '.join(hex_texto.split())}")
+
+        # Criptografar cada bloco
+            resultado = ''
+            for bloco in blocos:
+                resultado += des(bloco, hex_to_bin(chave))  # Chama a função de criptografia DES
+
+            return resultado 
+        
+        # Exibindo informações
+        print(f"Texto Plano: {hex_texto}")
+        print(f"Chave: {chave} (HEXADECIMAL)")
+        
+        # Separar em blocos de 64 bits
+        print(f"Texto Plano em HEX: {hex_texto} (depois da conversão)")
+        bin_texto = bin_texto.replace(" ", "")  # Remove os espaços
+        while len(bin_texto) % 64 != 0:  # Adiciona padding se necessário
+            bin_texto += '0'
+        
+        print(f"Texto Plano em binário (com padding se necessário): {bin_texto}")
 
 # Execução do programa
 def main():
