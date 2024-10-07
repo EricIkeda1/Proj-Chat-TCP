@@ -377,6 +377,17 @@ def des(texto, chave):
         resultado += L + R  # Placeholder: Retorna o bloco sem alteração
     return resultado  # Retorne o resultado da criptografia
 
+def des_descriptografar(texto, chave):
+    """Implementa a descriptografia DES (reverso da criptografia)."""
+    resultado = ''
+    for i in range(0, len(texto), 64):
+        block = texto[i:i + 64]
+        # Simule o processo DES reverso
+        L, R = block[:32], block[32:]
+        # Adicione a lógica de rounds e aplique a chave corretamente (inverso)
+        resultado += L + R  # Placeholder: Retorna o bloco sem alteração
+    return resultado 
+
 # Gerar chaves para DES
 def generate_keys(key):
     key = permute(key, PC1)
@@ -466,6 +477,7 @@ def processar_operacao(operacao, escolha, texto, chave):
 
             return resultado 
         
+        
         # Exibindo informações
         print(f"Texto Plano: {hex_texto}")
         print(f"Chave: {chave} (HEXADECIMAL)")
@@ -477,6 +489,11 @@ def processar_operacao(operacao, escolha, texto, chave):
             bin_texto += '0'
         
         print(f"Texto Plano em binário (com padding se necessário): {bin_texto}")
+        
+    elif operacao == '2':  # Descriptografar
+            for bloco in blocos:
+                resultado += des_descriptografar(bloco, hex_to_bin(chave))  # Chama a função de descriptografia DES
+            print("Resultado da Descriptografia:")
 
 # Execução do programa
 def main():
