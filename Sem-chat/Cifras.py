@@ -1,5 +1,6 @@
 from Crypto.Cipher import DES
 import base64
+from colorama import init, Fore, Style
 
 def menu():
     print("===== Programa de Criptografia =====")
@@ -74,64 +75,90 @@ def inverter_mapeamento(mapeamento):
     return {v: k for k, v in mapeamento.items()}
 
 # Cifra de Playfair
-def cria_matriz_playfair(chave):
-    alfabeto = "ABCDEFGHIKLMNOPQRSTUVWXYZ"
-    chave = ''.join(dict.fromkeys(chave.upper().replace('J', 'I')))
+def criar_matriz_playfair(chave):
+    alfabeto = 'ABCDEFGHIKLMNOPQRSTUVWXYZ'
     matriz = []
-    for char in chave:
-        if char in alfabeto and char not in matriz:
+    usado = {}
+
+    for char in chave.upper():
+        if char not in usado and char != ' ':
             matriz.append(char)
+            usado[char] = True
+
     for char in alfabeto:
-        if char not in matriz:
+        if char not in usado:
             matriz.append(char)
-    return matriz
 
-def cifra_playfair(texto, chave, modo='criptografar'):
-    matriz = cria_matriz_playfair(chave)
-    texto = texto.upper().replace('J', 'I')
-    pares = []
-    i = 0
-    while i < len(texto):
-        a = texto[i]
-        b = ''
-        if (i+1) < len(texto):
-            b = texto[i+1]
-            if a == b:
-                b = 'X'
-                i += 1
-            else:
-                i += 2
+    return [matriz[i:i + 5] for i in range(0, len(matriz), 5)]
+
+def encontrar_indices(matriz, letra):
+    for i in range(len(matriz)):
+        for j in range(len(matriz[i])):
+            if matriz[i][j] == letra.upper():
+                return (i, j)
+    return (-1, -1)
+
+def criptografar_playfair(texto, chave):
+    matriz = criar_matriz_playfair(chave)
+    texto_cifrado = ''
+    digrama = ''
+    texto_sem_espacos = texto.replace(' ', '')
+
+    if len(texto_sem_espacos) % 2 != 0:
+        texto_sem_espacos += 'X'  # Caractere de preenchimento
+
+    for i in range(len(texto_sem_espacos)):
+        char = texto_sem_espacos[i]
+        char_upper = char.upper()
+        if char_upper == 'J':
+            digrama += 'I'
         else:
-            b = 'X'
-            i += 1
-        pares.append(a + b)
+            digrama += char_upper
 
-    resultado = ""
-    for par in pares:
-        a, b = par[0], par[1]
-        idx_a = matriz.index(a)
-        idx_b = matriz.index(b)
-        row_a, col_a = divmod(idx_a, 5)
-        row_b, col_b = divmod(idx_b, 5)
+        if len(digrama) == 2:
+            i1, j1 = encontrar_indices(matriz, digrama[0])
+            i2, j2 = encontrar_indices(matriz, digrama[1])
 
-        if row_a == row_b:
-            if modo == 'criptografar':
-                resultado += matriz[row_a * 5 + (col_a + 1) % 5]
-                resultado += matriz[row_b * 5 + (col_b + 1) % 5]
+            if i1 == i2:
+                texto_cifrado += matriz[i1][(j1 + 1) % 5] + matriz[i2][(j2 + 1) % 5]
+            elif j1 == j2:
+                texto_cifrado += matriz[(i1 + 1) % 5][j1] + matriz[(i2 + 1) % 5][j2]
             else:
-                resultado += matriz[row_a * 5 + (col_a - 1) % 5]
-                resultado += matriz[row_b * 5 + (col_b - 1) % 5]
-        elif col_a == col_b:
-            if modo == 'criptografar':
-                resultado += matriz[((row_a + 1) % 5) * 5 + col_a]
-                resultado += matriz[((row_b + 1) % 5) * 5 + col_b]
-            else:
-                resultado += matriz[((row_a - 1) % 5) * 5 + col_a]
-                resultado += matriz[((row_b - 1) % 5) * 5 + col_b]
+                texto_cifrado += matriz[i1][j2] + matriz[i2][j1]
+            digrama = ''
+
+    return texto_cifrado
+
+def descriptografar_playfair(texto_cifrado, chave):
+    matriz = criar_matriz_playfair(chave)
+    texto_claro = ''
+    texto_sem_espacos = texto_cifrado.replace(' ', '')
+
+    if len(texto_sem_espacos) % 2 != 0:
+        print(Fore.RED + "Texto cifrado tem comprimento ímpar.")
+        return
+
+    for i in range(0, len(texto_sem_espacos), 2):
+        char1 = texto_sem_espacos[i].upper()
+        char2 = texto_sem_espacos[i + 1].upper()
+
+        if not char1.isalpha() or not char2.isalpha():
+            print(Fore.RED + "Caractere inválido no texto cifrado.")
+            return
+
+        i1, j1 = encontrar_indices(matriz, char1)
+        i2, j2 = encontrar_indices(matriz, char2)
+
+        if i1 == i2:
+            texto_claro += matriz[i1][(j1 - 1) % 5] + matriz[i2][(j2 - 1) % 5]
+        elif j1 == j2:
+            texto_claro += matriz[(i1 - 1) % 5][j1] + matriz[(i2 - 1) % 5][j2]
         else:
-            resultado += matriz[row_a * 5 + col_b]
-            resultado += matriz[row_b * 5 + col_a]
-    return resultado
+            texto_claro += matriz[i1][j2] + matriz[i2][j1]
+
+    texto_claro = texto_claro.replace('X', '')  # Remove 'X' no final, se necessário
+
+    return texto_claro
 
 # Cifra de Vigenère
 def cifra_vigenere(texto, chave, modo='criptografar'):
@@ -261,9 +288,9 @@ def processar_operacao(operacao, escolha, texto, chave):
 
     elif escolha == '3':  # Cifra de Playfair
         if operacao == '1':
-            resultado = cifra_playfair(texto, chave, 'criptografar')
+            resultado = criptografar_playfair(texto, chave)  # Removido 'criptografar'
         else:
-            resultado = cifra_playfair(texto, chave, 'descriptografar')
+            resultado = descriptografar_playfair(texto, chave) 
 
     elif escolha == '4':  # Cifra de Vigenère
         if operacao == '1':
@@ -283,6 +310,7 @@ def processar_operacao(operacao, escolha, texto, chave):
                 resultado = original_text
             except Exception as e:
                 resultado = f"Erro na descriptografia: {e}"
+
     elif escolha == '6':  # Cifra DES
         if operacao == '1':
             # Gerar a subchave k2
@@ -294,6 +322,7 @@ def processar_operacao(operacao, escolha, texto, chave):
             resultado = "Descriptografia DES não implementada."  # Substitua isso pela sua implementação
 
     return resultado
+
 # Execução do programa
 def main():
     while True:
